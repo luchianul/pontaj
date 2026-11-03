@@ -1,6 +1,6 @@
 {
   "appId": "com.diazelectricite.pontaj",
-  "appName": "Pontaj",
+  "appName": "eTime",
   "webDir": "www",
   "android": { "allowMixedContent": false },
   "server": { "androidScheme": "https" }

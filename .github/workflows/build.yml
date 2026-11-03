@@ -42,11 +42,11 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
       - name: Redenumeste
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk Pontaj-${{ github.run_number }}.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk eTime-${{ github.run_number }}.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: Pontaj-Android
-          path: Pontaj-${{ github.run_number }}.apk
+          name: eTime-Android
+          path: eTime-${{ github.run_number }}.apk
 
   windows:
     runs-on: windows-latest
@@ -69,11 +69,11 @@ jobs:
           ls dist
       - uses: actions/upload-artifact@v4
         with:
-          name: Pontaj-Windows
+          name: eTime-Windows
           path: |
-            dist/Pontaj-Setup.exe
+            dist/eTime-Setup.exe
             dist/latest.yml
-            dist/Pontaj-Setup.exe.blockmap
+            dist/eTime-Setup.exe.blockmap
 
   release:
     needs: [android, windows]
@@ -90,7 +90,7 @@ jobs:
           tag_name: versiunea-${{ github.run_number }}
           name: Versiunea ${{ github.run_number }}
           files: |
-            out/Pontaj-${{ github.run_number }}.apk
-            out/Pontaj-Setup.exe
+            out/eTime-${{ github.run_number }}.apk
+            out/eTime-Setup.exe
             out/latest.yml
-            out/Pontaj-Setup.exe.blockmap
+            out/eTime-Setup.exe.blockmap

@@ -17,11 +17,11 @@
   },
   "build": {
     "appId": "com.diazelectricite.pontaj",
-    "productName": "Pontaj",
+    "productName": "eTime",
     "files": ["electron/**", "www/**", "package.json"],
     "directories": { "output": "dist", "buildResources": "build" },
     "win": { "target": "nsis", "icon": "build/icon.png" },
-    "nsis": { "oneClick": true, "perMachine": false, "createDesktopShortcut": true, "createStartMenuShortcut": true, "artifactName": "Pontaj-Setup.exe" },
+    "nsis": { "oneClick": true, "perMachine": false, "createDesktopShortcut": true, "createStartMenuShortcut": true, "artifactName": "eTime-Setup.exe" },
     "publish": [{ "provider": "github", "owner": "luchianul", "repo": "pontaj" }]
   }
 }

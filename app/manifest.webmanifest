@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "Pontaj Gabi",
-  "short_name": "Pontaj",
+  "name": "eTime",
+  "short_name": "eTime",
   "description": "Pontaj ore, șantiere, facturi și deduceri",
   "lang": "ro",
   "start_url": "./",

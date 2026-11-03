@@ -9,7 +9,7 @@ function createWindow() {
   Menu.setApplicationMenu(null);
   win = new BrowserWindow({
     width: 1300, height: 900, minWidth: 380, minHeight: 600,
-    title: 'Pontaj', backgroundColor: '#0b1220', autoHideMenuBar: true,
+    title: 'eTime', backgroundColor: '#0b1220', autoHideMenuBar: true,
     icon: path.join(__dirname, '..', 'build', 'icon.png'),
     webPreferences: { contextIsolation: true, nodeIntegration: false, preload: path.join(__dirname, 'preload.js') }
   });
