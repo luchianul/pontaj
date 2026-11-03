@@ -87,6 +87,20 @@
     D.santiere = sOrder.map(function (k) { return [S[k].nume, r2(S[k].ore), Number(an)]; }).reverse();
   }
 
+  // ca pe server: ajustăm doar săptămâna/șantierele zilei atinse (istoricul vechi nu se recalculează)
+  function applyRowLocal(row, sign) {
+    var an = String(row[1]).slice(0, 4), D = yearData(an), wk = weekOf(row[1]);
+    var h = num(row[5]), km = num(row[6]), tH = num(row[9], 30), tK = num(row[10], 0.45), cash = !!row[8];
+    var dh = h * sign, dk = km * sign, sH = h * tH * sign, sK = km * tK * sign, ds = (cash ? 0 : h * tH + km * tK) * sign;
+    var st = null; D.statistici.forEach(function (x) { if (Number(x[6]) === wk) st = x; });
+    if (st) { st[1] = r2(Math.max(0, num(st[1]) + dh)); st[2] = r2(Math.max(0, num(st[2]) + dk)); st[3] = r2(Math.max(0, num(st[3]) + sH)); st[4] = r2(Math.max(0, num(st[4]) + sK)); st[5] = r2(Math.max(0, num(st[5]) + ds)); }
+    else if (sign > 0) { D.statistici.unshift([D.statistici.length + 1, r2(h), r2(km), r2(h * tH), r2(km * tK), r2(ds), wk, Number(an), '']); D.statistici.sort(function (a, b) { return b[6] - a[6]; }); }
+    splitLoc(row[4], h).forEach(function (it) {
+      var k = norm(it.nume), f = -1; D.santiere.forEach(function (x, i) { if (norm(x[0]) === k) f = i; });
+      if (f >= 0) { var nv = r2(Math.max(0, num(D.santiere[f][1]) + it.ore * sign)); if (nv <= 0.005 && sign < 0) D.santiere.splice(f, 1); else D.santiere[f][1] = nv; }
+      else if (sign > 0) D.santiere.unshift([it.nume, r2(it.ore), Number(an)]);
+    });
+  }
   function insertSorted(D, row) {        // cele mai noi primele; la aceeași dată, după cele existente
     var i = 0; while (i < D.istoric.length && D.istoric[i][1] >= row[1]) i++;
     D.istoric.splice(i, 0, row);
@@ -174,14 +188,15 @@
       var iso = isoOf(o.data), an = iso.slice(0, 4), h1 = parseFloat(calculOre(o.oraIntrare, o.oraIesire));
       var D = yearData(an), key = o.rowIndex || o.ridx || o.clientId, old = findRow(key);
       var row = [o.ziua, iso, o.oraIntrare, o.oraIesire, o.strada, h1, num(o.km), o.nume, !!o.isCash, num(o.tarifH, 30), num(o.tarifKm, 0.45), String(old ? cache.an[old.an].istoric[old.i][11] : key)];
+      if (old) applyRowLocal(cache.an[old.an].istoric[old.i], -1);
       if (old && old.an === an && cache.an[old.an].istoric[old.i][1] === iso) { D.istoric[old.i] = row; }
-      else { if (old) { cache.an[old.an].istoric.splice(old.i, 1); recalc(old.an); } insertSorted(D, row); }
-      recalc(an); enqueue('adaugaDate', [o]);
+      else { if (old) cache.an[old.an].istoric.splice(old.i, 1); insertSorted(D, row); }
+      applyRowLocal(row, 1); enqueue('adaugaDate', [o]);
       ok(h, D);
     },
     stergeRand: function (h, key) {
       var f = findRow(key);
-      if (f) { var an = f.an; cache.an[an].istoric.splice(f.i, 1); recalc(an); }
+      if (f) { var an = f.an; applyRowLocal(cache.an[an].istoric[f.i], -1); cache.an[an].istoric.splice(f.i, 1); }
       enqueue('stergeRand', [String(key)]);
       ok(h, f ? cache.an[f.an] : emptyYear(curYear()));
     },
