@@ -341,6 +341,20 @@ input[type="date"], input[type="time"] { min-width: 0; max-width: 100%; }
 .btn-edit:hover, .btn-edit:active { background: var(--primary-soft); }
 .btn-delete:hover, .btn-delete:active { background: var(--danger-soft); }
 
+.week-bar { display:flex; align-items:center; gap:8px; margin:0 0 12px; flex-wrap:wrap; width:100%; max-width:100%; box-sizing:border-box; padding:0 16px; }
+@media (min-width:900px){ .week-bar { padding:0; } }
+.week-bar .wk-sel { flex:1 1 0; width:0; min-width:0; text-overflow:ellipsis; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:var(--card, #fff); color:inherit; font-size:15px; font-weight:600; }
+.week-bar .wk-btn { width:42px; height:42px; border-radius:12px; border:1px solid var(--line); background:var(--card, #fff); color:inherit; font-size:16px; }
+.week-bar .wk-btn:disabled { opacity:.35; }
+.week-bar .wk-tot { flex:1 0 100%; font-size:13px; color:var(--muted, #64748b); padding-left:4px; }
+#home-alert .alert-miss { background:#fff7ed; border:1px solid #fdba74; color:#9a3412; border-radius:16px; padding:14px 16px; margin:0 0 14px; }
+#home-alert .alert-miss b.t { display:flex; align-items:center; gap:8px; font-size:15px; margin-bottom:8px; }
+#home-alert .miss-row { display:flex; align-items:center; gap:8px; padding:6px 0; border-top:1px solid #fed7aa; font-size:14px; }
+#home-alert .miss-row span { flex:1; font-weight:600; }
+#home-alert .miss-row button { border:0; border-radius:10px; padding:8px 12px; font-size:13px; font-weight:600; }
+#home-alert .miss-row .go { background:#ea580c; color:#fff; }
+#home-alert .miss-row .off { background:#ffedd5; color:#9a3412; }
+[data-theme="dark"] #home-alert .alert-miss { background:#3b1d0a; border-color:#9a3412; color:#fdba74; }
 .week-separator {
   margin: 18px 20px 8px; font-size: 12.5px; font-weight: 600; color: var(--text-muted);
   display: flex; align-items: center; gap: 10px;
@@ -943,6 +957,7 @@ input[type="date"], input[type="time"] { min-width: 0; max-width: 100%; }
     </div>
   </div>
 
+  <div id="home-alert"></div>
   <div class="home-week-card">
     <div class="hwc-scene" id="hwc-scene">
       <div class="hwc-sky-day">
@@ -1069,6 +1084,7 @@ input[type="date"], input[type="time"] { min-width: 0; max-width: 100%; }
 
 <!-- TAB: JURNAL -->
 <div id="view-pontaje" class="view-section">
+  <div id="week-bar" class="week-bar"></div>
   <div class="jurnal-table">
     <div class="jurnal-thead" aria-hidden="true">
       <span class="h-data">Data</span><span class="h-zi">Zi</span><span class="h-int">Interval</span><span class="h-ore">Ore</span>
@@ -1338,6 +1354,63 @@ var currentEditIdx = null;
 var globalData = [];
 var renderedCount = 0;
 var chunkSize = 15;
+var viewData = [];          // ce se vede in Jurnal (saptamana aleasa sau toate)
+var jurSel = 'cur';         // 'cur' = saptamana curenta, 'all' = toate, sau numarul saptamanii
+function curWeekNo() { return getWeek(new Date().toISOString().slice(0, 10) + 'T12:00:00'); }
+function weekList() {
+  var an = parseInt(document.getElementById('anSelector').value, 10), set = {};
+  globalData.forEach(function (r) { set[getWeek(r[1])] = 1; });
+  var cw = curWeekNo();
+  if (an === new Date().getFullYear()) set[cw] = 1;
+  return Object.keys(set).map(Number).sort(function (a, b) { return b - a; });
+}
+function selWeekNo() {
+  if (jurSel === 'all') return null;
+  var an = parseInt(document.getElementById('anSelector').value, 10), wl = weekList();
+  if (jurSel === 'cur') return (an === new Date().getFullYear()) ? curWeekNo() : (wl[0] || null);
+  return wl.indexOf(jurSel) >= 0 ? jurSel : (wl[0] || null);
+}
+function weekRange(w) {
+  var an = parseInt(document.getElementById('anSelector').value, 10);
+  try {
+    var l = getMondayOfISOWeek(w, an), d = new Date(l); d.setDate(l.getDate() + 6);
+    var o = { day: 'numeric', month: 'short' };
+    return l.toLocaleDateString('ro-RO', o) + ' – ' + d.toLocaleDateString('ro-RO', o);
+  } catch (e) { return ''; }
+}
+function buildWeekBar() {
+  var bar = document.getElementById('week-bar'); if (!bar) return;
+  var wl = weekList(), cw = curWeekNo(), an = parseInt(document.getElementById('anSelector').value, 10), sel = selWeekNo();
+  var opts = '<option value="all"' + (sel === null ? ' selected' : '') + '>Toate săptămânile</option>';
+  wl.forEach(function (w) {
+    opts += '<option value="' + w + '"' + (w === sel ? ' selected' : '') + '>Săpt. ' + w + ' · ' + weekRange(w) + (w === cw && an === new Date().getFullYear() ? ' (curentă)' : '') + '</option>';
+  });
+  var h = 0, n = 0;
+  if (sel !== null) globalData.forEach(function (r) { if (getWeek(r[1]) === sel) { h += parseFloat(r[5]) || 0; n++; } });
+  var tot = sel === null ? (globalData.length + ' zile în ' + an) : (n + (n === 1 ? ' zi' : ' zile') + ' · ' + formatOreMinute(h));
+  var i = wl.indexOf(sel);
+  bar.innerHTML = '<button type="button" class="wk-btn" onclick="stepWeek(1)" aria-label="Săptămâna anterioară"' + (sel === null || i >= wl.length - 1 ? ' disabled' : '') + '><i class="bi bi-chevron-left"></i></button>' +
+    '<select class="wk-sel" onchange="pickWeek(this.value)" aria-label="Alege săptămâna">' + opts + '</select>' +
+    '<button type="button" class="wk-btn" onclick="stepWeek(-1)" aria-label="Săptămâna următoare"' + (sel === null || i <= 0 ? ' disabled' : '') + '><i class="bi bi-chevron-right"></i></button>' +
+    '<span class="wk-tot">' + tot + '</span>';
+}
+function applyWeekFilter() {
+  var sel = selWeekNo();
+  viewData = sel === null ? globalData : globalData.filter(function (r) { return getWeek(r[1]) === sel; });
+}
+function rerenderJurnal() {
+  buildWeekBar(); applyWeekFilter();
+  var c = document.getElementById('lista-bruta'); c.innerHTML = ''; renderedCount = 0;
+  if (!viewData.length) c.innerHTML = emptyStateHTML('bi-calendar-x', 'Niciun pontaj în săptămâna asta', 'Apasă + ca să adaugi o zi.');
+  else renderNextChunk();
+  window.scrollTo(0, 0);
+}
+function pickWeek(v) { jurSel = (v === 'all') ? 'all' : parseInt(v, 10); rerenderJurnal(); }
+function stepWeek(dir) {   // dir=1 -> mai veche, -1 -> mai noua
+  var wl = weekList(), sel = selWeekNo(), i = wl.indexOf(sel), j = i + dir;
+  if (i < 0 || j < 0 || j >= wl.length) return;
+  jurSel = wl[j]; rerenderJurnal();
+}
 var isRendering = false;
 var totalDeIncasatBrut = 0;
 
@@ -1547,7 +1620,7 @@ google.script.run
   .getAvatarUrl();
 
   window.addEventListener('scroll', function () {
-    if (isRendering || renderedCount >= globalData.length) return;
+    if (isRendering || renderedCount >= viewData.length) return;
     if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 600) renderNextChunk();
   }, { passive: true });
 };
@@ -1555,7 +1628,15 @@ google.script.run
 // ============================================================
 // LOAD DATA
 // ============================================================
-function loadData() {
+var _loadedOnce = false, _lastHidden = 0;
+function userBusy() {
+  var a = document.activeElement, t = a && a.tagName;
+  if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return true;
+  if (document.querySelector('.modal.show, .swal2-container')) return true;
+  return Date.now() - (window._lastTouch || 0) < 45000;       // a atins ecranul in ultimele 45 s
+}
+['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (ev) { document.addEventListener(ev, function () { window._lastTouch = Date.now(); }, { passive: true, capture: true }); });
+function loadData(silent) {
   syncShell(); // NOU
   var an = document.getElementById('anSelector').value;
   var activeTab = document.querySelector('.nav-item.active').id.replace('nav-', '');
@@ -1564,7 +1645,8 @@ function loadData() {
   }
 
   var lista = document.getElementById('lista-bruta');
-  lista.innerHTML = SKELETON_LISTA; // NOU: skeleton în loc de spinner
+  var _sy = window.scrollY;
+  if (!(silent === true && _loadedOnce)) lista.innerHTML = SKELETON_LISTA; // skeleton doar la prima incarcare / schimbare de an
 
   google.script.run
     .withSuccessHandler(function (data) {
@@ -1604,9 +1686,13 @@ function loadData() {
         renderStats(data.statistici);
       }
 
+      _loadedOnce = true;
+      buildWeekBar();
+      applyWeekFilter();
       renderedCount = 0;
       lista.innerHTML = '';
       renderNextChunk();
+      if (silent === true) { try { window.scrollTo(0, _sy); } catch (e) {} }
 
       if (data.santiere) renderSantiere(data.santiere);
 
@@ -1620,7 +1706,7 @@ function loadData() {
 }
 
 window.addEventListener('px-synced', function () {
-  if (typeof loadData === 'function' && !document.querySelector('.modal.show, .swal2-container') && document.getElementById('anSelector')) { try { loadData(); } catch (e) {} }
+  if (typeof loadData === 'function' && !userBusy() && document.getElementById('anSelector')) { try { loadData(true); } catch (e) {} }
 });
 
 // ============================================================
@@ -1654,13 +1740,13 @@ function renderNextChunk() {
 
   var container = document.getElementById('lista-bruta');
   var fragment = document.createDocumentFragment();
-  var nextItems = globalData.slice(renderedCount, renderedCount + chunkSize);
-
-  var lastW = renderedCount > 0 ? getWeek(globalData[renderedCount - 1][1]) : null;
+  var nextItems = viewData.slice(renderedCount, renderedCount + chunkSize);
+  var oneWeek = viewData.length !== globalData.length;
+  var lastW = renderedCount > 0 ? getWeek(viewData[renderedCount - 1][1]) : null;
 
   nextItems.forEach(function (r) {
     var currW = getWeek(r[1]);
-    if (lastW !== currW) {
+    if (lastW !== currW && !oneWeek) {
       var sep = document.createElement('div');
       sep.className = 'week-separator';
       sep.innerText = 'Săptămâna ' + currW;
@@ -2207,7 +2293,35 @@ function generateSparklineSVG(vals) {
   '</svg>';
 }
 
+var DOW_RO = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];
+function isoLocal(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function offDays() { try { return JSON.parse(localStorage.getItem('px_off') || '[]'); } catch (e) { return []; } }
+function checkMissingDays() {
+  var el = document.getElementById('home-alert'); if (!el) return;
+  var now = new Date(), an = parseInt(document.getElementById('anSelector').value, 10);
+  if (an !== now.getFullYear() || !_loadedOnce) { el.innerHTML = ''; return; }
+  var have = {}; globalData.forEach(function (r) { have[String(r[1]).slice(0, 10)] = 1; });
+  var off = offDays(), miss = [];
+  for (var k = 1; k <= 10; k++) {                         // ultimele 10 zile (fara azi)
+    var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - k);
+    if (d.getFullYear() !== an) break;
+    var dow = d.getDay(); if (dow === 0 || dow === 6) continue;       // sambata/duminica nu conteaza
+    var iso = isoLocal(d);
+    if (!have[iso] && off.indexOf(iso) < 0) miss.push({ iso: iso, d: d });
+  }
+  if (!miss.length) { el.innerHTML = ''; return; }
+  var h = '<div class="alert-miss"><b class="t"><i class="bi bi-exclamation-triangle-fill"></i> ' + (miss.length === 1 ? 'Nu ai pontat o zi' : 'Nu ai pontat ' + miss.length + ' zile') + '</b>';
+  miss.forEach(function (m) {
+    h += '<div class="miss-row"><span>' + DOW_RO[m.d.getDay()] + ' ' + m.d.getDate() + '/' + ('0' + (m.d.getMonth() + 1)).slice(-2) + '</span>' +
+         '<button type="button" class="go" onclick="adaugaZiLipsa(\'' + m.iso + '\')">Adaugă</button>' +
+         '<button type="button" class="off" onclick="ziLibera(\'' + m.iso + '\')">Liber</button></div>';
+  });
+  el.innerHTML = h + '</div>';
+}
+function adaugaZiLipsa(iso) { deschideAdaugare(); var i = document.getElementById('data'); if (i) { i.value = iso; try { i.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {} } }
+function ziLibera(iso) { var o = offDays(); if (o.indexOf(iso) < 0) o.push(iso); try { localStorage.setItem('px_off', JSON.stringify(o.slice(-200))); } catch (e) {} checkMissingDays(); }
 function updateHomeStats(anSelectat) {
+  try { checkMissingDays(); } catch (e) {}
   var salutEl = document.getElementById('home-salut');
   if (salutEl) salutEl.innerText = salutTimp();
 
@@ -2398,7 +2512,7 @@ function filtreazaDate() {
 
   if (activeTab === 'view-pontaje') {
     var container = document.getElementById('lista-bruta');
-    if (query === "") { container.innerHTML = ""; renderedCount = 0; renderNextChunk(); return; }
+    if (query === "") { rerenderJurnal(); return; }
     container.innerHTML = "";
     var rezultate = globalData.filter(function (r) {
       return r[0].toLowerCase().includes(query) || r[1].toLowerCase().includes(query) ||
@@ -2728,16 +2842,17 @@ function intraInAplicatie() {
 // AUTO-REFRESH
 // ============================================================
 document.addEventListener("visibilitychange", function () {
-  if (document.visibilityState === 'visible') {
+  if (document.visibilityState === 'hidden') { _lastHidden = Date.now(); return; }
+  // doar dupa o pauza lunga (>10 min) si doar daca nu scrii nimic
+  if (_lastHidden && Date.now() - _lastHidden > 600000 && !userBusy()) {
     var sBar = document.getElementById('searchBar');
-    if (!sBar || sBar.value === "") loadData();
+    if (!sBar || sBar.value === "") loadData(true);
   }
 });
 
 setInterval(function () {
-  var sBar = document.getElementById('searchBar');
-  if (!sBar || sBar.value === "") loadData();
   actualizeazaSceneWidget();
+  checkMissingDays();
 }, 120000);
 
 function actualizeazaWidgetCalendar() {
