@@ -2547,6 +2547,7 @@ function deschideAdaugare() {
   document.getElementById('fMain').reset();
   document.getElementById('container-adrese').innerHTML = '';
   adaugaRandAdresa();
+  try { var tr = JSON.parse(localStorage.getItem('px_tarif') || 'null'); if (tr) { document.getElementById('tH').value = tr.h; document.getElementById('tK').value = tr.k; } } catch (e) {}   // zi nouă: ultimul tarif folosit
   document.getElementById('modalTitle').innerText = "Adaugă Zi";
   modalObj.show();
 }
@@ -2590,6 +2591,8 @@ function pregatesteEdit(idx) {
   });
 
   document.getElementById("km").value = r[6] || "";
+  document.getElementById("tH").value = (parseFloat(r[9]) || 30);       // ziua veche își păstrează propriul tarif
+  document.getElementById("tK").value = (parseFloat(r[10]) || 0.45);
 
   var val = String(r[8]).toLowerCase().trim();
   document.getElementById("isCash").checked = (val === "true" || val === "adevărat" || val === "adevarat");
@@ -2650,6 +2653,7 @@ function execSalveaza() {
     tarifKm: document.getElementById('tK').value
   };
 
+  if (!currentEditIdx) { try { localStorage.setItem('px_tarif', JSON.stringify({ h: dateDeTrimis.tarifH, k: dateDeTrimis.tarifKm })); } catch (e) {} }   // tariful ales rămâne pentru zilele noi
   b.disabled = true;
   google.script.run
     .withSuccessHandler(function () {
