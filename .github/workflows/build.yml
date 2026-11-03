@@ -1,0 +1,96 @@
+name: Construieste aplicatiile
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'android-src/**'
+      - 'electron/**'
+      - 'package.json'
+      - 'capacitor.config.json'
+      - '.github/workflows/**'
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Pregatire aplicatie
+        run: |
+          mkdir -p www
+          cp -r app/. www/
+          rm -f www/sw.js
+          sed -i "s/var APP_BUILD = 0;/var APP_BUILD = ${{ github.run_number }};/" www/native.js
+          grep -c "var APP_BUILD = ${{ github.run_number }};" www/native.js
+          npm install --no-audit --no-fund --ignore-scripts
+          npx cap add android
+          pip install pillow
+          python3 android-src/prepare_android.py
+          npx cap sync android
+      - name: Construieste APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+      - name: Redenumeste
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk Pontaj-${{ github.run_number }}.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Pontaj-Android
+          path: Pontaj-${{ github.run_number }}.apk
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Pregatire si construire
+        shell: bash
+        run: |
+          mkdir -p www
+          cp -r app/. www/
+          rm -f www/sw.js
+          sed -i "s/var APP_BUILD = 0;/var APP_BUILD = ${{ github.run_number }};/" www/native.js
+          grep -c "var APP_BUILD = ${{ github.run_number }};" www/native.js
+          npm version 1.0.${{ github.run_number }} --no-git-tag-version --allow-same-version
+          npm install --no-audit --no-fund
+          npx electron-builder --win --x64 --publish never
+          ls dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Pontaj-Windows
+          path: |
+            dist/Pontaj-Setup.exe
+            dist/latest.yml
+            dist/Pontaj-Setup.exe.blockmap
+
+  release:
+    needs: [android, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: versiunea-${{ github.run_number }}
+          name: Versiunea ${{ github.run_number }}
+          files: |
+            out/Pontaj-${{ github.run_number }}.apk
+            out/Pontaj-Setup.exe
+            out/latest.yml
+            out/Pontaj-Setup.exe.blockmap
