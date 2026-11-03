@@ -2,6 +2,10 @@
 import os, shutil
 from PIL import Image, ImageDraw
 
+pkg = 'android/app/src/main/java/com/diazelectricite/pontaj'
+for f in ('UpdatePlugin.java', 'MainActivity.java'):
+    shutil.copy('android-src/' + f, pkg + '/' + f)
+
 res = 'android/app/src/main/res'
 src = Image.open('build/icon.png').convert('RGBA')
 def mask(px, circle):

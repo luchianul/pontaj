@@ -21,6 +21,13 @@
     d.querySelector('#updyes').onclick = function () { d.remove(); onYes(); };
   }
   function openUrl(u) { var B = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser; if (B) B.open({ url: u }); else window.open(u, '_blank'); }
+  function downloadApk(u, name) {
+    var U = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.UpdatePlugin;
+    if (!U) { openUrl(u); return; }
+    U.download({ url: u, name: name }).then(function () {
+      alert('Descărcarea a început.\nCând se termină, atinge notificarea „' + name + '” (sus) și apasă Instalează.\nDatele tale rămân.');
+    }).catch(function () { openUrl(u); });
+  }
   var manual = false;
   function say(m) { if (manual) alert(m); }
 
@@ -46,7 +53,7 @@
       if (n <= APP_BUILD) { say('Ai cea mai nouă versiune (' + APP_BUILD + ').'); return; }
       var a = (j.assets || []).find(function (x) { return /\.apk$/i.test(x.name); });
       if (!a || a.browser_download_url.indexOf('https://github.com/' + REPO + '/') !== 0) { say('Versiunea nouă nu are încă fișierul pentru telefon.'); return; }
-      box('Versiune nouă disponibilă', 'Ai versiunea ' + APP_BUILD + ', a apărut versiunea ' + n + '.<br>Vrei să actualizezi acum?<br><small>Datele tale rămân. După ce se descarcă fișierul, deschide-l și apasă „Instalează”.</small>', 'Da, actualizează', function () { openUrl(a.browser_download_url); });
+      box('Versiune nouă disponibilă', 'Ai versiunea ' + APP_BUILD + ', a apărut versiunea ' + n + '.<br>Vrei să actualizezi acum?<br><small>Datele tale rămân. După ce se descarcă fișierul, deschide-l și apasă „Instalează”.</small>', 'Da, actualizează', function () { downloadApk(a.browser_download_url, a.name); });
     } catch (e) { say('Nu pot verifica acum. Ai internet?'); }
   }
 
