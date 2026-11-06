@@ -908,6 +908,7 @@ input[type="date"], input[type="time"] { min-width: 0; max-width: 100%; }
         </div>
         <select id="anSelectorTop" class="form-select tb-select an-desk" aria-label="An" onchange="setAn(this.value)"></select>
         <button type="button" class="tb-btn tb-ghost" data-theme-toggle onclick="toggleTema()" aria-label="Schimbă tema"><i class="bi bi-moon-fill"></i></button>
+        <button type="button" class="tb-btn tb-ghost" onclick="pxSettings && pxSettings()"><i class="bi bi-arrow-repeat"></i> Sincronizează</button>
         <button type="button" class="tb-btn tb-ghost" onclick="execBackup()"><i class="bi bi-cloud-arrow-down"></i> Backup</button>
         <button type="button" class="tb-btn tb-ghost" onclick="deschideLink()"><i class="bi bi-box-arrow-up-right"></i> Scaneaza</button>
         <button type="button" class="tb-btn tb-primary" onclick="deschideAdaugare()"><i class="bi bi-plus-lg"></i> Adaugă zi</button>
@@ -1215,6 +1216,12 @@ input[type="date"], input[type="time"] { min-width: 0; max-width: 100%; }
       <span class="speed-dial-label">Scaneaza Bonuri</span>
       <button class="speed-dial-btn sd-link" onclick="deschideLink(); toggleSpeedDial(false);" title="Deschide link" aria-label="Deschide link">
         <i class="bi bi-box-arrow-up-right"></i>
+      </button>
+    </div>
+    <div class="speed-dial-item">
+      <span class="speed-dial-label">Sincronizează</span>
+      <button class="speed-dial-btn sd-sync" onclick="pxSettings && pxSettings(); toggleSpeedDial(false);" title="Sincronizează" aria-label="Sincronizează">
+        <i class="bi bi-arrow-repeat"></i>
       </button>
     </div>
     <div class="speed-dial-item">

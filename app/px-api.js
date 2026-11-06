@@ -290,19 +290,21 @@
   window.addEventListener('px-synced', function () { chip('done'); });
   setInterval(function () { if (queue.length) flush(); }, 30000);
 
+  function setUrl(u) { u = (u || '').trim(); if (u !== url()) { cache = { an: {}, ts: {} }; lsSet(K_URL, u); save(); } }
+
   window.pxSettings = function () {
     if (!window.Swal) { var u = prompt('Adresa Apps Script (se termină cu /exec):', url()); if (u !== null) { lsSet(K_URL, u.trim()); flush(); } return; }
     var n = queue.length, bad = failed.length;
     Swal.fire({
-      title: 'Sincronizare cu Google Sheet',
+      title: 'Sincronizează cu Google Sheet-ul tău',
       html: '<div style="text-align:left;font-size:14px"><label style="font-weight:600">Adresa Apps Script (se termină cu /exec)</label>' +
             '<input id="px-url" class="swal2-input" style="margin:6px 0 10px;width:100%;font-size:13px" value="' + url().replace(/"/g, '&quot;') + '" placeholder="https://script.google.com/macros/s/…/exec">' +
             '<div id="px-st" style="min-height:20px;font-size:13px;color:#475569">' + (online() ? '🟢 Internet' : '📴 Fără internet') + ' · ' + n + ' de trimis' + (bad ? ' · <b style="color:#b91c1c">' + bad + ' eșuate</b>' : '') + '</div>' +
-            '<small style="color:#64748b">Fără internet poți continua să faci pontajul: datele se păstrează pe acest dispozitiv și se trimit singure când revine semnalul.</small>' + (window.pxNativeHtml ? window.pxNativeHtml() : '') + '</div>',
-      showCancelButton: true, showDenyButton: true, confirmButtonText: 'Salvează', denyButtonText: 'Testează și trimite', denyButtonColor: '#0f766e', cancelButtonText: 'Închide',
-      preConfirm: function () { lsSet(K_URL, document.getElementById('px-url').value.trim()); return true; },
+            '<small style="color:#64748b;display:block;margin-bottom:6px">Lipește aici adresa aplicației Apps Script publicate din Sheet-ul tău (Extensii → Apps Script → Implementează → Aplicație web). Apoi apasă „Salvează și sincronizează”. Datele vor fi citite și scrise în Sheet-ul tău.</small><small style="color:#64748b">Fără internet poți continua să faci pontajul: datele se păstrează pe acest dispozitiv și se trimit singure când revine semnalul.</small>' + (window.pxNativeHtml ? window.pxNativeHtml() : '') + '</div>',
+      showCancelButton: true, showDenyButton: true, confirmButtonText: 'Salvează și sincronizează', denyButtonText: 'Testează și trimite', denyButtonColor: '#0f766e', cancelButtonText: 'Închide',
+      preConfirm: function () { setUrl(document.getElementById('px-url').value); return true; },
       preDeny: function () {
-        var u = document.getElementById('px-url').value.trim(); lsSet(K_URL, u);
+        var u = document.getElementById('px-url').value.trim(); setUrl(u);
         var st = document.getElementById('px-st'); st.textContent = 'Se testează…';
         failed.forEach(function (f) { f.op.tries = 0; queue.push(f.op); }); failed = []; save();
         return fetch(u + (u.indexOf('?') < 0 ? '?' : '&') + 'action=ping').then(function (r) { return r.json(); }).then(function () { st.textContent = '✔ Conectat. Se trimit datele…'; return flush(); })
